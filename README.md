@@ -10,7 +10,7 @@ import (
 
 func main() {
   
-  params := &i18naddress{
+  params := &i18naddress.Params{
     CountryCode: "vn",
   }
 

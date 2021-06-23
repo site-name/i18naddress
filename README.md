@@ -1,4 +1,4 @@
-i18naddress can tell you all the names of cities, states, provinces of all country around the world.
+i18naddress can tell you all the names of cities, states, provinces of all nations around the world.
 
 ```go
 package main

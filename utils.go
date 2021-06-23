@@ -40,3 +40,14 @@ func max(a, b int) int {
 	}
 	return b
 }
+
+func filterSlice(slice []string, filter func(s string) bool) []string {
+	res := []string{}
+	for _, str := range slice {
+		if filter(str) {
+			res = append(res, str)
+		}
+	}
+
+	return res
+}

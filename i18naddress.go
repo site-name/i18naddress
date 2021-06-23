@@ -479,6 +479,7 @@ func (p *Params) Patch(name string, value string) {
 	}
 }
 
+// normalizeField
 func normalizeField(name string, rules *ValidationRules, data *Params, choices [][2]string, errors map[string]string) {
 	value := data.GetProperty(name)
 
@@ -550,3 +551,118 @@ func NormalizeAddress(address *Params) (p *Params, errorMap map[string]string) {
 
 	return cleanedData, nil
 }
+
+func formatAddressLine(lineFormat string, address *Params, rules *ValidationRules) string {
+	getField := func(name string) string {
+		value := address.GetProperty(name)
+		if stringInSlice(name, &rules.UpperFields) {
+			value = strings.ToUpper(value)
+		}
+
+		return value
+	}
+
+	replacements := make(map[string]string, len(FIELD_MAPPING))
+	for key, value := range FIELD_MAPPING {
+		replacements[fmt.Sprintf("%%%s", key)] = getField(value)
+	}
+
+	fields := regexp.MustCompile("(%.)").Split(lineFormat, -1)
+	for i, field := range fields {
+		if repl, exist := replacements[field]; exist {
+			fields[i] = repl
+		}
+	}
+
+	return strings.TrimSpace(strings.Join(fields, ""))
+}
+
+func GetFieldOrder(address *Params, latin bool) ([][]string, error) {
+	rules, err := GetValidationRules(address)
+	if err != nil {
+		return nil, err
+	}
+	addressFormat := rules.AddressLatinFormat
+	if !latin {
+		addressFormat = rules.AddressFormat
+	}
+
+	addressLines := strings.Split(addressFormat, "%n")
+	replacements := make(map[string]string, len(FIELD_MAPPING))
+	for key, value := range FIELD_MAPPING {
+		replacements[fmt.Sprintf("%%%s", key)] = value
+	}
+
+	allLines := [][]string{}
+	for _, line := range addressLines {
+		fields := regexp.MustCompile("(%.)").Split(line, -1)
+		singleLine := []string{}
+		for _, field := range fields {
+			singleLine = append(singleLine, replacements[field])
+		}
+		singleLine = filterSlice(singleLine, func(s string) bool {
+			return s != ""
+		})
+		allLines = append(allLines, singleLine)
+	}
+
+	return allLines, nil
+}
+
+func FormatAddress(address *Params, latin bool) (string, error) {
+	rules, err := GetValidationRules(address)
+	if err != nil {
+		return "", err
+	}
+
+	addressFormat := rules.AddressLatinFormat
+	if !latin {
+		addressFormat = rules.AddressFormat
+	}
+
+	addressLines := []string{}
+	for _, lf := range strings.Split(addressFormat, "%n") {
+		addressLines = append(addressLines, formatAddressLine(lf, address, rules))
+	}
+	addressLines = append(addressLines, rules.CountryName)
+	addressLines = filterSlice(addressLines, func(s string) bool {
+		return s != ""
+	})
+
+	return strings.Join(addressLines, "\n"), nil
+}
+
+type ErrorMap map[string]string
+
+func (e ErrorMap) Error() string {
+	if e == nil || len(e) == 0 {
+		return "{}"
+	}
+	b, _ := json.Marshal(e)
+	return string(b)
+}
+
+// func LatinizeAddress(address *Params, normalized bool) (interface{}, error) {
+// 	if !normalized {
+// 		address, errMap := NormalizeAddress(address)
+// 		if errMap != nil || len(errMap) > 0 {
+// 			return nil, ErrorMap(errMap)
+// 		}
+// 	}
+
+// 	cleanedData := address.Copy()
+// 	countryCode := address.GetProperty("country_code")
+// 	countryCode = strings.ToUpper(countryCode)
+// 	_, database, err := loadCountryData(countryCode)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	if countryCode != "" {
+// 		countryArea := address.GetProperty("country_area")
+// 		if countryArea != "" {
+// 			key = countryCode + "/" + countryArea
+// 			country
+// 		}
+// 	}
+// }

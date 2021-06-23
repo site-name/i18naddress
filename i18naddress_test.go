@@ -47,7 +47,7 @@ func TestFilterDuplicate(t *testing.T) {
 }
 
 func TestGetValidationRules(t *testing.T) {
-	pr := &Params{CountryCode: "vn"}
+	pr := &Params{}
 	rules, err := GetValidationRules(pr)
 	if err != nil {
 		t.Fatal(err)

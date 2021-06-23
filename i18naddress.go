@@ -68,13 +68,6 @@ func LoadValidationData(countryCode string) ([]byte, error) {
 	return data, nil
 }
 
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 func makeChoices(rules map[string]string, translated bool) [][2]string {
 	subKeys, ok := rules["sub_keys"]
 	if !ok {
@@ -199,24 +192,14 @@ func loadCountryData(countryCode string) (map[string]string, map[string]map[stri
 	return countryData, database, nil
 }
 
-func filterDuplicate(slice *[]string) *[]string {
-	meetMap := make(map[string]bool)
-	res := []string{}
-	for _, str := range *slice {
-		if _, met := meetMap[str]; !met {
-			res = append(res, str)
-			meetMap[str] = true
-		}
-	}
-
-	return &res
-}
-
 type Params struct {
-	CountryArea string
-	CountryCode string
-	City        string
-	CityArea    string
+	CountryArea   string
+	CountryCode   string
+	City          string
+	CityArea      string
+	PostalCode    string
+	StreetAddress string
+	SortingCode   string
 }
 
 func GetValidationRules(address *Params) (*ValidationRules, error) {
@@ -395,15 +378,6 @@ func GetValidationRules(address *Params) (*ValidationRules, error) {
 	}, nil
 }
 
-func regexesToStrings(in []*regexp.Regexp) *[]string {
-	res := []string{}
-	for _, rg := range in {
-		res = append(res, rg.String())
-	}
-
-	return &res
-}
-
 type ValidationRules struct {
 	CountryCode        string
 	CountryName        string
@@ -463,12 +437,116 @@ func (v *ValidationRules) String() string {
 		v.PostalCodePrefix)
 }
 
-func stringInSlice(s string, slice *[]string) bool {
-	for _, str := range *slice {
-		if s == str {
-			return true
+func (p *Params) GetProperty(name string) string {
+	switch strings.ToLower(name) {
+	case "country_area":
+		return p.CountryArea
+	case "city":
+		return p.City
+	case "city_area":
+		return p.CityArea
+	case "country_code":
+		return p.CountryCode
+	case "postal_code":
+		return p.PostalCode
+	case "street_address":
+		return p.StreetAddress
+	case "sorting_code":
+		return p.SortingCode
+	default:
+		return ""
+	}
+}
+
+func (p *Params) Patch(name string, value string) {
+	switch strings.ToLower(name) {
+	case "country_area":
+		p.CountryArea = value
+	case "city":
+		p.City = value
+	case "city_area":
+		p.CityArea = value
+	case "country_code":
+		p.CountryCode = value
+	case "postal_code":
+		p.PostalCode = value
+	case "street_address":
+		p.StreetAddress = value
+	case "sorting_code":
+		p.SortingCode = value
+	default:
+		return
+	}
+}
+
+func normalizeField(name string, rules *ValidationRules, data *Params, choices [][2]string, errors map[string]string) {
+	value := data.GetProperty(name)
+
+	if stringInSlice(name, &rules.UpperFields) && value != "" {
+		value = strings.ToUpper(value)
+		data.Patch(name, value)
+	}
+
+	if !stringInSlice(name, &rules.AllowedFields) {
+		data.Patch(name, "")
+	} else if value == "" && stringInSlice(name, &rules.RequiredFields) {
+		errors[name] = "required"
+	} else if len(choices) > 0 {
+		if value != "" || stringInSlice(name, &rules.RequiredFields) {
+			value = matchChoices(value, choices)
+			if value != "" {
+				data.Patch(name, value)
+			} else {
+				errors[name] = "invalid"
+			}
 		}
 	}
 
-	return false
+	if value == "" {
+		data.Patch(name, value)
+	}
+}
+
+func (p *Params) Copy() *Params {
+	var newP Params
+	newP = *p
+	return &newP
+}
+
+func NormalizeAddress(address *Params) (p *Params, errorMap map[string]string) {
+	errors := make(map[string]string)
+
+	rules, err := GetValidationRules(address)
+	if err != nil {
+		errors["country_code"] = "invalid"
+	}
+
+	cleanedData := address.Copy()
+	if cleanedData.CountryCode == "" {
+		errors["country_code"] = "required"
+	} else {
+		cleanedData.CountryCode = strings.ToUpper(cleanedData.CountryCode)
+	}
+	normalizeField("country_area", rules, cleanedData, rules.CountryAreaChoices, errors)
+	normalizeField("city", rules, cleanedData, rules.CityChoices, errors)
+	normalizeField("city_area", rules, cleanedData, rules.CityAreaChoices, errors)
+	normalizeField("postal_code", rules, cleanedData, [][2]string{}, errors)
+
+	if cleanedData.PostalCode != "" && len(rules.PostalCodeMatchers) > 0 {
+		for _, matcher := range rules.PostalCodeMatchers {
+			if !matcher.MatchString(cleanedData.PostalCode) {
+				errors["postal_code"] = "invalid"
+				break
+			}
+		}
+	}
+
+	normalizeField("street_address", rules, cleanedData, [][2]string{}, errors)
+	normalizeField("sorting_code", rules, cleanedData, [][2]string{}, errors)
+
+	if len(errors) > 0 {
+		return nil, errors
+	}
+
+	return cleanedData, nil
 }

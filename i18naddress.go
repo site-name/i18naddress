@@ -1,7 +1,6 @@
 package i18naddress
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -9,6 +8,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 var (
@@ -18,6 +19,7 @@ var (
 	VALIDATION_DATA_PATH string            // path to .json files
 	FIELD_MAPPING        map[string]string // short name representations
 	KNOWN_FIELDS         []string
+	json                 = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 func init() {
@@ -509,8 +511,7 @@ func normalizeField(name string, rules *ValidationRules, data *Params, choices [
 }
 
 func (p *Params) Copy() *Params {
-	var newP Params
-	newP = *p
+	var newP Params = *p
 	return &newP
 }
 

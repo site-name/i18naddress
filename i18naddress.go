@@ -1,7 +1,6 @@
 package i18naddress
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"regexp"
@@ -61,13 +60,7 @@ func LoadValidationData(countryCode string) (io.Reader, error) {
 		return nil, fmt.Errorf("%s is not valid country code", countryCode)
 	}
 
-	buf := &bytes.Buffer{}
-	_, err = io.Copy(buf, file)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf, nil
+	return file, nil
 }
 
 func makeChoices(rules map[string]string, translated bool) [][2]string {

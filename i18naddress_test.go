@@ -9,7 +9,7 @@ import (
 )
 
 func TestLoadValidationData(t *testing.T) {
-	reader, err := LoadValidationData("us")
+	reader, err := LoadValidationData("vn")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -24,7 +24,7 @@ func TestLoadValidationData(t *testing.T) {
 }
 
 func TestLoadCountryData(t *testing.T) {
-	db, data, err := loadCountryData("zz")
+	db, data, err := loadCountryData("vn")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,9 @@ func TestFilterDuplicate(t *testing.T) {
 }
 
 func TestGetValidationRules(t *testing.T) {
-	pr := &Params{}
+	pr := &Params{
+		CountryCode: "uz",
+	}
 	rules, err := GetValidationRules(pr)
 	if err != nil {
 		t.Fatal(err)

@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -14,24 +12,18 @@ import (
 )
 
 var (
-	VALID_COUNTRY_CODE   *regexp.Regexp // regexp for checking country code
-	FORMAT_REGEX         *regexp.Regexp
-	VALIDATION_DATA_DIR  string            // path to /data folder
+	VALID_COUNTRY_CODE   *regexp.Regexp    // regexp for checking country code
+	FORMAT_REGEX         *regexp.Regexp    //
 	VALIDATION_DATA_PATH string            // path to .json files
 	FIELD_MAPPING        map[string]string // short name representations
-	KNOWN_FIELDS         []string
-	json                 = jsoniter.ConfigCompatibleWithStandardLibrary
+	KNOWN_FIELDS         []string          //
+	json                 jsoniter.API      // fast json
 )
 
 func init() {
+	json = jsoniter.ConfigCompatibleWithStandardLibrary
 	VALID_COUNTRY_CODE = regexp.MustCompile(`^\w{2,3}$`)
 	FORMAT_REGEX = regexp.MustCompile(`%([ACDNOSXZ])`)
-	cwd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	VALIDATION_DATA_DIR = filepath.Join(cwd, "data")
-	// VALIDATION_DATA_PATH = filepath.Join(VALIDATION_DATA_DIR, "%s.json")
 	VALIDATION_DATA_PATH = "/%s.json"
 
 	FIELD_MAPPING = map[string]string{
@@ -53,7 +45,7 @@ func init() {
 	sort.Strings(KNOWN_FIELDS)
 }
 
-func LoadValidationData(countryCode string) ([]byte, error) {
+func LoadValidationData(countryCode string) (io.Reader, error) {
 	if countryCode == "" {
 		countryCode = "all"
 	}
@@ -75,7 +67,7 @@ func LoadValidationData(countryCode string) ([]byte, error) {
 		return nil, err
 	}
 
-	return buf.Bytes(), nil
+	return buf, nil
 }
 
 func makeChoices(rules map[string]string, translated bool) [][2]string {
@@ -171,13 +163,13 @@ func loadCountryData(countryCode string) (map[string]string, map[string]map[stri
 
 	countryCode = strings.ToUpper(countryCode)
 
-	data, err := LoadValidationData("zz")
+	reader, err := LoadValidationData("zz")
 	if err != nil {
 		return nil, nil, err
 	}
 	database := make(map[string]map[string]string)
 
-	err = json.Unmarshal(data, &database)
+	err = json.NewDecoder(reader).Decode(&database)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -186,12 +178,12 @@ func loadCountryData(countryCode string) (map[string]string, map[string]map[stri
 
 	delete(database, "ZZ") // since this map has 1 key-value pair
 
-	data, err = LoadValidationData(strings.ToLower(countryCode))
+	reader, err = LoadValidationData(strings.ToLower(countryCode))
 	if err != nil {
 		return nil, nil, err
 	}
 
-	err = json.Unmarshal(data, &database)
+	err = json.NewDecoder(reader).Decode(&database)
 	if err != nil {
 		return nil, nil, err
 	}

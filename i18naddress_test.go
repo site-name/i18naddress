@@ -1,18 +1,26 @@
 package i18naddress
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"reflect"
 	"testing"
 )
 
 func TestLoadValidationData(t *testing.T) {
-	data, err := LoadValidationData("us")
+	reader, err := LoadValidationData("us")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fmt.Println(string(data))
+	buf := bytes.Buffer{}
+	_, err = io.Copy(&buf, reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Println(buf.String())
 }
 
 func TestLoadCountryData(t *testing.T) {

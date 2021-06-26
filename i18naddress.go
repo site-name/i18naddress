@@ -64,6 +64,9 @@ func LoadValidationData(countryCode string) ([]byte, error) {
 
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, err
+		}
 		return nil, fmt.Errorf("%s is not valid country code", countryCode)
 	}
 

@@ -449,7 +449,7 @@ func (v *ValidationRules) String() string {
 		v.CityAreaType,
 		v.CityAreaChoices,
 		v.PostalCodeType,
-		*regexesToStrings(v.PostalCodeMatchers),
+		*RegexesToStrings(v.PostalCodeMatchers),
 		v.PostalCodeExamples,
 		v.PostalCodePrefix)
 }

@@ -10,6 +10,23 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
+// InvalidCodeErr indicate given country code is invalid
+type InvalidCodeErr struct {
+	value interface{}
+	msg   string
+}
+
+func (i *InvalidCodeErr) Error() string {
+	return fmt.Sprintf(i.msg, i.value)
+}
+
+func newInvalidCodeErr(value interface{}) *InvalidCodeErr {
+	return &InvalidCodeErr{
+		msg:   "%s is not a valid code",
+		value: value,
+	}
+}
+
 var (
 	VALID_COUNTRY_CODE   *regexp.Regexp    // regexp for checking country code
 	FORMAT_REGEX         *regexp.Regexp    //
@@ -50,14 +67,14 @@ func LoadValidationData(countryCode string) (io.Reader, error) {
 	}
 
 	if !VALID_COUNTRY_CODE.MatchString(countryCode) {
-		return nil, fmt.Errorf("%s is not a valid country code", countryCode)
+		return nil, newInvalidCodeErr(countryCode)
 	}
 
 	path := fmt.Sprintf(VALIDATION_DATA_PATH, strings.ToLower(countryCode))
 
 	file, err := assets.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("%s is not valid country code", countryCode)
+		return nil, newInvalidCodeErr(countryCode)
 	}
 
 	return file, nil
@@ -151,7 +168,7 @@ func matchChoices(value string, choices [][2]string) string {
 func loadCountryData(countryCode string) (map[string]string, map[string]map[string]string, error) {
 
 	if strings.EqualFold(countryCode, "zz") {
-		return nil, nil, fmt.Errorf("%s is not a valid country code", countryCode)
+		return nil, nil, newInvalidCodeErr(countryCode)
 	}
 
 	countryCode = strings.ToUpper(countryCode)
@@ -197,6 +214,11 @@ type Params struct {
 	SortingCode   string
 }
 
+// GetValidationRules get validation rules for given params.
+//
+// there are 3 error types might be returned:
+//
+// nil, *InvalidCodeErr, json (encoding/decoding) error
 func GetValidationRules(address *Params) (*ValidationRules, error) {
 	countryCode := strings.ToUpper(address.CountryCode)
 	countryData, database, err := loadCountryData(countryCode)

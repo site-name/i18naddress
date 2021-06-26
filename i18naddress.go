@@ -139,12 +139,15 @@ func compactChoices(choices [][2]string) *[][2]string {
 
 	res := [][2]string{}
 	for key, values := range valueMap {
-		values = *(filterDuplicate(&values))
-		sort.Strings(values)
+		values = *filterDuplicate(&values)
 		for _, value := range values {
 			res = append(res, [2]string{key, value})
 		}
 	}
+
+	sort.Slice(res, func(i, j int) bool {
+		return res[i][0] < res[j][0]
+	})
 
 	return &res
 }

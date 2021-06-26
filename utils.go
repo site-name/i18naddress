@@ -2,6 +2,7 @@ package i18naddress
 
 import "regexp"
 
+// stringInSlice checks if given string presents in given slice
 func stringInSlice(s string, slice *[]string) bool {
 	for _, str := range *slice {
 		if s == str {
@@ -12,7 +13,8 @@ func stringInSlice(s string, slice *[]string) bool {
 	return false
 }
 
-func regexesToStrings(in []*regexp.Regexp) *[]string {
+// RegexesToStrings convert a slice of *Regexp(s) to a pointer to slice of string
+func RegexesToStrings(in []*regexp.Regexp) *[]string {
 	res := []string{}
 	for _, rg := range in {
 		res = append(res, rg.String())
@@ -21,6 +23,7 @@ func regexesToStrings(in []*regexp.Regexp) *[]string {
 	return &res
 }
 
+// filterDuplicate filter all item(s) that appear(s) >= 2 times in given slice
 func filterDuplicate(slice *[]string) *[]string {
 	meetMap := make(map[string]bool)
 	res := []string{}
@@ -41,6 +44,7 @@ func max(a, b int) int {
 	return b
 }
 
+// filterSlice filter from slice item(s) that does not satify given filter func
 func filterSlice(slice []string, filter func(s string) bool) []string {
 	res := []string{}
 	for _, str := range slice {

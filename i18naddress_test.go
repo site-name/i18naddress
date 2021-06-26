@@ -55,3 +55,13 @@ func TestGetValidationRules(t *testing.T) {
 
 	fmt.Println(rules)
 }
+
+func TestAssets(t *testing.T) {
+	file, err := assets.Open("/zz.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+
+	fmt.Println(file)
+}

@@ -1,8 +1,9 @@
 package i18naddress
 
 import (
+	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -30,7 +31,8 @@ func init() {
 		panic(err)
 	}
 	VALIDATION_DATA_DIR = filepath.Join(cwd, "data")
-	VALIDATION_DATA_PATH = filepath.Join(VALIDATION_DATA_DIR, "%s.json")
+	// VALIDATION_DATA_PATH = filepath.Join(VALIDATION_DATA_DIR, "%s.json")
+	VALIDATION_DATA_PATH = "/%s.json"
 
 	FIELD_MAPPING = map[string]string{
 		"A": "street_address",
@@ -62,15 +64,18 @@ func LoadValidationData(countryCode string) ([]byte, error) {
 
 	path := fmt.Sprintf(VALIDATION_DATA_PATH, strings.ToLower(countryCode))
 
-	data, err := ioutil.ReadFile(path)
+	file, err := assets.Open(path)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, err
-		}
 		return nil, fmt.Errorf("%s is not valid country code", countryCode)
 	}
 
-	return data, nil
+	buf := &bytes.Buffer{}
+	_, err = io.Copy(buf, file)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
 
 func makeChoices(rules map[string]string, translated bool) [][2]string {

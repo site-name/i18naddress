@@ -45,11 +45,11 @@ func TestFilterDuplicate(t *testing.T) {
 	}
 
 	for i, ca := range cases {
-		res := filterDuplicate(&ca.in)
-		if !reflect.DeepEqual(*res, ca.expect) {
-			t.Fatalf("Test case #%d failed: got %v, expect: %v", i+1, *res, ca.expect)
+		res := filterDuplicate(ca.in)
+		if !reflect.DeepEqual(res, ca.expect) {
+			t.Fatalf("Test case #%d failed: got %v, expect: %v", i+1, res, ca.expect)
 		} else {
-			fmt.Println(*res)
+			fmt.Println(res)
 		}
 	}
 }

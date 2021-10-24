@@ -3,8 +3,8 @@ package i18naddress
 import "regexp"
 
 // stringInSlice checks if given string presents in given slice
-func stringInSlice(s string, slice *[]string) bool {
-	for _, str := range *slice {
+func stringInSlice(s string, slice []string) bool {
+	for _, str := range slice {
 		if s == str {
 			return true
 		}
@@ -14,27 +14,29 @@ func stringInSlice(s string, slice *[]string) bool {
 }
 
 // RegexesToStrings convert a slice of *Regexp(s) to a pointer to slice of string
-func RegexesToStrings(in []*regexp.Regexp) *[]string {
+func RegexesToStrings(in []*regexp.Regexp) []string {
 	res := []string{}
 	for _, rg := range in {
 		res = append(res, rg.String())
 	}
 
-	return &res
+	return res
 }
 
 // filterDuplicate filter all item(s) that appear(s) >= 2 times in given slice
-func filterDuplicate(slice *[]string) *[]string {
-	meetMap := make(map[string]bool)
-	res := []string{}
-	for _, str := range *slice {
+func filterDuplicate(slice []string) []string {
+	var (
+		meetMap = make(map[string]bool)
+		res     = []string{}
+	)
+	for _, str := range slice {
 		if _, met := meetMap[str]; !met {
 			res = append(res, str)
 			meetMap[str] = true
 		}
 	}
 
-	return &res
+	return res
 }
 
 func max(a, b int) int {

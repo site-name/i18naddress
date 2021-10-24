@@ -1,3 +1,5 @@
+//go:generate go run generate/main.go
+
 package i18naddress
 
 import (
@@ -139,7 +141,7 @@ func compactChoices(choices [][2]string) *[][2]string {
 
 	res := [][2]string{}
 	for key, values := range valueMap {
-		values = *filterDuplicate(&values)
+		values = filterDuplicate(values)
 		for _, value := range values {
 			res = append(res, [2]string{key, value})
 		}
@@ -241,19 +243,19 @@ func GetValidationRules(address *Params) (*ValidationRules, error) {
 	for _, field := range formatFields {
 		allowedFields = append(allowedFields, FIELD_MAPPING[string(field[1])])
 	}
-	allowedFields = *(filterDuplicate(&allowedFields))
+	allowedFields = filterDuplicate(allowedFields)
 
 	requiredFields := []string{}
 	for _, r := range countryData["require"] {
 		requiredFields = append(requiredFields, FIELD_MAPPING[string(r)])
 	}
-	requiredFields = *(filterDuplicate(&requiredFields))
+	requiredFields = filterDuplicate(requiredFields)
 
 	upperFields := []string{}
 	for _, r := range countryData["upper"] {
 		upperFields = append(upperFields, FIELD_MAPPING[string(r)])
 	}
-	upperFields = *(filterDuplicate(&upperFields))
+	upperFields = filterDuplicate(upperFields)
 
 	var languages []string
 	if lingos, exist := countryData["languages"]; exist {
@@ -261,7 +263,7 @@ func GetValidationRules(address *Params) (*ValidationRules, error) {
 	}
 
 	postalCodeMatchers := []*regexp.Regexp{}
-	if stringInSlice("postal_code", &allowedFields) {
+	if stringInSlice("postal_code", allowedFields) {
 		if zip, exist := countryData["zip"]; exist {
 			postalCodeMatchers = append(postalCodeMatchers, regexp.MustCompile(fmt.Sprintf("^%s$", zip)))
 		}
@@ -452,7 +454,7 @@ func (v *ValidationRules) String() string {
 		v.CityAreaType,
 		v.CityAreaChoices,
 		v.PostalCodeType,
-		*RegexesToStrings(v.PostalCodeMatchers),
+		RegexesToStrings(v.PostalCodeMatchers),
 		v.PostalCodeExamples,
 		v.PostalCodePrefix)
 }
@@ -503,17 +505,17 @@ func (p *Params) Patch(name string, value string) {
 func normalizeField(name string, rules *ValidationRules, data *Params, choices [][2]string, errors map[string]string) {
 	value := data.GetProperty(name)
 
-	if stringInSlice(name, &rules.UpperFields) && value != "" {
+	if stringInSlice(name, rules.UpperFields) && value != "" {
 		value = strings.ToUpper(value)
 		data.Patch(name, value)
 	}
 
-	if !stringInSlice(name, &rules.AllowedFields) {
+	if !stringInSlice(name, rules.AllowedFields) {
 		data.Patch(name, "")
-	} else if value == "" && stringInSlice(name, &rules.RequiredFields) {
+	} else if value == "" && stringInSlice(name, rules.RequiredFields) {
 		errors[name] = "required"
 	} else if len(choices) > 0 {
-		if value != "" || stringInSlice(name, &rules.RequiredFields) {
+		if value != "" || stringInSlice(name, rules.RequiredFields) {
 			value = matchChoices(value, choices)
 			if value != "" {
 				data.Patch(name, value)
@@ -574,7 +576,7 @@ func NormalizeAddress(address *Params) (p *Params, errorMap map[string]string) {
 func formatAddressLine(lineFormat string, address *Params, rules *ValidationRules) string {
 	getField := func(name string) string {
 		value := address.GetProperty(name)
-		if stringInSlice(name, &rules.UpperFields) {
+		if stringInSlice(name, rules.UpperFields) {
 			value = strings.ToUpper(value)
 		}
 

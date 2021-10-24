@@ -46,6 +46,13 @@ func max(a, b int) int {
 	return b
 }
 
+func min(a, b int) int {
+	if a > b {
+		return b
+	}
+	return a
+}
+
 // filterSlice filter from slice item(s) that does not satify given filter func
 func filterSlice(slice []string, filter func(s string) bool) []string {
 	res := []string{}

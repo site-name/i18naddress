@@ -3,31 +3,13 @@
 package i18naddress
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"regexp"
 	"sort"
 	"strings"
-
-	jsoniter "github.com/json-iterator/go"
 )
-
-// InvalidCodeErr indicate given country code is invalid
-type InvalidCodeErr struct {
-	value interface{}
-	msg   string
-}
-
-func (i *InvalidCodeErr) Error() string {
-	return fmt.Sprintf(i.msg, i.value)
-}
-
-func newInvalidCodeErr(value interface{}) *InvalidCodeErr {
-	return &InvalidCodeErr{
-		msg:   "%s is not a valid code",
-		value: value,
-	}
-}
 
 var (
 	VALID_COUNTRY_CODE   *regexp.Regexp    // regexp for checking country code
@@ -35,11 +17,9 @@ var (
 	VALIDATION_DATA_PATH string            // path to .json files
 	FIELD_MAPPING        map[string]string // short name representations
 	KNOWN_FIELDS         []string          //
-	json                 jsoniter.API      // fast json
 )
 
 func init() {
-	json = jsoniter.ConfigCompatibleWithStandardLibrary
 	VALID_COUNTRY_CODE = regexp.MustCompile(`^\w{2,3}$`)
 	FORMAT_REGEX = regexp.MustCompile(`%([ACDNOSXZ])`)
 	VALIDATION_DATA_PATH = "/%s.json"
@@ -63,6 +43,7 @@ func init() {
 	sort.Strings(KNOWN_FIELDS)
 }
 
+// LoadValidationData
 func LoadValidationData(countryCode string) (io.Reader, error) {
 	if countryCode == "" {
 		countryCode = "all"
@@ -72,9 +53,7 @@ func LoadValidationData(countryCode string) (io.Reader, error) {
 		return nil, newInvalidCodeErr(countryCode)
 	}
 
-	path := fmt.Sprintf(VALIDATION_DATA_PATH, strings.ToLower(countryCode))
-
-	file, err := assets.Open(path)
+	file, err := assets.Open(fmt.Sprintf(VALIDATION_DATA_PATH, strings.ToLower(countryCode)))
 	if err != nil {
 		return nil, newInvalidCodeErr(countryCode)
 	}
@@ -88,20 +67,24 @@ func makeChoices(rules map[string]string, translated bool) [][2]string {
 		return [][2]string{}
 	}
 
-	choices := [][2]string{}
-	splitSubKeys := strings.Split(subKeys, "~")
+	var (
+		choices         = [][2]string{}
+		splitSubKeys    = strings.Split(subKeys, "~")
+		subNames, exist = rules["sub_names"]
+	)
 
-	subNames, ok := rules["sub_names"]
-	if ok {
+	if exist {
 		splitSubNames := strings.Split(subNames, "~")
-		for i := 0; i < max(len(splitSubKeys), len(splitSubNames)); i++ {
-			if trimmedName := strings.TrimSpace(splitSubNames[i]); trimmedName != "" {
-				choices = append(choices, [2]string{splitSubKeys[i], trimmedName})
+		for i := 0; i < min(len(splitSubKeys), len(splitSubNames)); i++ {
+			if splitSubNames[i] != "" {
+				choices = append(choices, [2]string{splitSubKeys[i], splitSubNames[i]})
 			}
 		}
-	} else if !translated {
-		for _, key := range splitSubKeys {
-			choices = append(choices, [2]string{key, key})
+	} else {
+		if !translated {
+			for _, key := range splitSubKeys {
+				choices = append(choices, [2]string{key, key})
+			}
 		}
 	}
 
@@ -109,9 +92,9 @@ func makeChoices(rules map[string]string, translated bool) [][2]string {
 		subLNames, ok := rules["sub_lnames"]
 		if ok {
 			splitSubLNames := strings.Split(subLNames, "~")
-			for i := 0; i < max(len(splitSubKeys), len(splitSubLNames)); i++ {
-				if trimmedName := strings.TrimSpace(splitSubLNames[i]); trimmedName != "" {
-					choices = append(choices, [2]string{splitSubKeys[i], trimmedName})
+			for i := 0; i < min(len(splitSubKeys), len(splitSubLNames)); i++ {
+				if splitSubLNames[i] != "" {
+					choices = append(choices, [2]string{splitSubKeys[i], splitSubLNames[i]})
 				}
 			}
 		}
@@ -119,9 +102,9 @@ func makeChoices(rules map[string]string, translated bool) [][2]string {
 		subLFNames, ok := rules["sub_lfnames"]
 		if ok {
 			splitSubLFNames := strings.Split(subLFNames, "~")
-			for i := 0; i < max(len(splitSubKeys), len(splitSubLFNames)); i++ {
-				if trimmedName := strings.TrimSpace(splitSubLFNames[i]); trimmedName != "" {
-					choices = append(choices, [2]string{splitSubKeys[i], trimmedName})
+			for i := 0; i < min(len(splitSubKeys), len(splitSubLFNames)); i++ {
+				if splitSubLFNames[i] != "" {
+					choices = append(choices, [2]string{splitSubKeys[i], splitSubLFNames[i]})
 				}
 			}
 		}
@@ -132,6 +115,7 @@ func makeChoices(rules map[string]string, translated bool) [][2]string {
 
 func compactChoices(choices [][2]string) *[][2]string {
 	valueMap := make(map[string][]string)
+
 	for _, choice := range choices {
 		if _, found := valueMap[choice[0]]; !found {
 			valueMap[choice[0]] = []string{}
@@ -156,13 +140,13 @@ func compactChoices(choices [][2]string) *[][2]string {
 
 func matchChoices(value string, choices [][2]string) string {
 	if value != "" {
-		value = strings.TrimSpace(value)
+		value = strings.ToLower(strings.TrimSpace(value))
 	}
 	for _, choice := range choices {
-		if strings.EqualFold(choice[0], value) {
+		if choice[0] == value {
 			return choice[0]
 		}
-		if strings.EqualFold(choice[1], value) {
+		if choice[1] == value {
 			return choice[0]
 		}
 	}

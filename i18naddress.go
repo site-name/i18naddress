@@ -1,5 +1,3 @@
-//go:generate go run generate/main.go
-
 package i18naddress
 
 import (

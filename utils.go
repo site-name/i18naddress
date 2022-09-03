@@ -1,6 +1,14 @@
 package i18naddress
 
-import "regexp"
+import (
+	"embed"
+	"regexp"
+)
+
+//go:embed google-i18n-address/i18naddress/data
+var assets embed.FS
+
+const assetsPrefix = "google-i18n-address/i18naddress/data"
 
 // stringInSlice checks if given string presents in given slice
 func stringInSlice(s string, slice []string) bool {
@@ -37,13 +45,6 @@ func filterDuplicate(slice []string) []string {
 	}
 
 	return res
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
 
 func min(a, b int) int {

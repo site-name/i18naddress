@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -53,7 +54,7 @@ func LoadValidationData(countryCode string) (io.Reader, error) {
 		return nil, newInvalidCodeErr(countryCode)
 	}
 
-	file, err := assets.Open(fmt.Sprintf(VALIDATION_DATA_PATH, strings.ToLower(countryCode)))
+	file, err := assets.Open(filepath.Join(assetsPrefix, fmt.Sprintf(VALIDATION_DATA_PATH, strings.ToLower(countryCode))))
 	if err != nil {
 		return nil, newInvalidCodeErr(countryCode)
 	}

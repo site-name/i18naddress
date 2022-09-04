@@ -6,6 +6,8 @@ import (
 	"io"
 	"reflect"
 	"testing"
+
+	"github.com/samber/lo"
 )
 
 func TestLoadValidationData(t *testing.T) {
@@ -45,7 +47,7 @@ func TestFilterDuplicate(t *testing.T) {
 	}
 
 	for i, ca := range cases {
-		res := filterDuplicate(ca.in)
+		res := lo.Uniq(ca.in)
 		if !reflect.DeepEqual(res, ca.expect) {
 			t.Fatalf("Test case #%d failed: got %v, expect: %v", i+1, res, ca.expect)
 		} else {

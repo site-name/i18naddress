@@ -1,6 +1,9 @@
 package i18naddress
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 // InvalidCodeErr indicate given country code is invalid
 type InvalidCodeErr struct {
@@ -17,4 +20,15 @@ func newInvalidCodeErr(value interface{}) *InvalidCodeErr {
 		msg:   "%s is not a valid code",
 		value: value,
 	}
+}
+
+// ErrorMap is map
+type ErrorMap map[string]string
+
+func (e ErrorMap) Error() string {
+	if len(e) == 0 {
+		return "{}"
+	}
+	b, _ := json.Marshal(e)
+	return string(b)
 }

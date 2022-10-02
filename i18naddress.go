@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/samber/lo"
 )
 
 var (
@@ -74,7 +76,7 @@ func makeChoices(rules map[string]string, translated bool) [][2]string {
 
 	if exist {
 		splitSubNames := strings.Split(subNames, "~")
-		for i := 0; i < min(len(splitSubKeys), len(splitSubNames)); i++ {
+		for i := 0; i < lo.Min([]int{len(splitSubKeys), len(splitSubNames)}); i++ {
 			if splitSubNames[i] != "" {
 				choices = append(choices, [2]string{splitSubKeys[i], splitSubNames[i]})
 			}
@@ -91,7 +93,7 @@ func makeChoices(rules map[string]string, translated bool) [][2]string {
 		subLNames, ok := rules["sub_lnames"]
 		if ok {
 			splitSubLNames := strings.Split(subLNames, "~")
-			for i := 0; i < min(len(splitSubKeys), len(splitSubLNames)); i++ {
+			for i := 0; i < lo.Min([]int{len(splitSubKeys), len(splitSubLNames)}); i++ {
 				if splitSubLNames[i] != "" {
 					choices = append(choices, [2]string{splitSubKeys[i], splitSubLNames[i]})
 				}
@@ -101,7 +103,7 @@ func makeChoices(rules map[string]string, translated bool) [][2]string {
 		subLFNames, ok := rules["sub_lfnames"]
 		if ok {
 			splitSubLFNames := strings.Split(subLFNames, "~")
-			for i := 0; i < min(len(splitSubKeys), len(splitSubLFNames)); i++ {
+			for i := 0; i < lo.Min([]int{len(splitSubKeys), len(splitSubLFNames)}); i++ {
 				if splitSubLFNames[i] != "" {
 					choices = append(choices, [2]string{splitSubKeys[i], splitSubLFNames[i]})
 				}
@@ -124,7 +126,7 @@ func compactChoices(choices [][2]string) *[][2]string {
 
 	res := [][2]string{}
 	for key, values := range valueMap {
-		values = filterDuplicate(values)
+		values = lo.Uniq(values)
 		for _, value := range values {
 			res = append(res, [2]string{key, value})
 		}
@@ -226,19 +228,19 @@ func GetValidationRules(address *Params) (*ValidationRules, error) {
 	for _, field := range formatFields {
 		allowedFields = append(allowedFields, FIELD_MAPPING[string(field[1])])
 	}
-	allowedFields = filterDuplicate(allowedFields)
+	allowedFields = lo.Uniq(allowedFields)
 
 	requiredFields := []string{}
 	for _, r := range countryData["require"] {
 		requiredFields = append(requiredFields, FIELD_MAPPING[string(r)])
 	}
-	requiredFields = filterDuplicate(requiredFields)
+	requiredFields = lo.Uniq(requiredFields)
 
 	upperFields := []string{}
 	for _, r := range countryData["upper"] {
 		upperFields = append(upperFields, FIELD_MAPPING[string(r)])
 	}
-	upperFields = filterDuplicate(upperFields)
+	upperFields = lo.Uniq(upperFields)
 
 	var languages []string
 	if lingos, exist := countryData["languages"]; exist {
@@ -246,7 +248,9 @@ func GetValidationRules(address *Params) (*ValidationRules, error) {
 	}
 
 	postalCodeMatchers := []*regexp.Regexp{}
-	if stringInSlice("postal_code", allowedFields) {
+	if lo.SomeBy(allowedFields, func(v string) bool {
+		return v == "postal_code"
+	}) {
 		if zip, exist := countryData["zip"]; exist {
 			postalCodeMatchers = append(postalCodeMatchers, regexp.MustCompile(fmt.Sprintf("^%s$", zip)))
 		}
@@ -488,17 +492,17 @@ func (p *Params) Patch(name string, value string) {
 func normalizeField(name string, rules *ValidationRules, data *Params, choices [][2]string, errors map[string]string) {
 	value := data.GetProperty(name)
 
-	if stringInSlice(name, rules.UpperFields) && value != "" {
+	if lo.SomeBy(rules.UpperFields, func(v string) bool { return v == name }) && value != "" {
 		value = strings.ToUpper(value)
 		data.Patch(name, value)
 	}
 
-	if !stringInSlice(name, rules.AllowedFields) {
+	if !lo.SomeBy(rules.AllowedFields, func(v string) bool { return name == v }) {
 		data.Patch(name, "")
-	} else if value == "" && stringInSlice(name, rules.RequiredFields) {
+	} else if value == "" && lo.SomeBy(rules.RequiredFields, func(v string) bool { return v == name }) {
 		errors[name] = "required"
 	} else if len(choices) > 0 {
-		if value != "" || stringInSlice(name, rules.RequiredFields) {
+		if value != "" || lo.SomeBy(rules.RequiredFields, func(v string) bool { return v == name }) {
 			value = matchChoices(value, choices)
 			if value != "" {
 				data.Patch(name, value)
@@ -559,7 +563,7 @@ func NormalizeAddress(address *Params) (p *Params, errorMap map[string]string) {
 func formatAddressLine(lineFormat string, address *Params, rules *ValidationRules) string {
 	getField := func(name string) string {
 		value := address.GetProperty(name)
-		if stringInSlice(name, rules.UpperFields) {
+		if lo.SomeBy(rules.UpperFields, func(v string) bool { return v == name }) {
 			value = strings.ToUpper(value)
 		}
 
@@ -604,8 +608,11 @@ func GetFieldOrder(address *Params, latin bool) ([][]string, error) {
 		for _, field := range fields {
 			singleLine = append(singleLine, replacements[field])
 		}
-		singleLine = filterSlice(singleLine, func(s string) bool {
+		singleLine = lo.Filter(singleLine, func(s string, _ int) bool {
 			return s != ""
+		})
+		singleLine = lo.Filter(singleLine, func(item string, _ int) bool {
+			return item != ""
 		})
 		allLines = append(allLines, singleLine)
 	}
@@ -629,21 +636,11 @@ func FormatAddress(address *Params, latin bool) (string, error) {
 		addressLines = append(addressLines, formatAddressLine(lf, address, rules))
 	}
 	addressLines = append(addressLines, rules.CountryName)
-	addressLines = filterSlice(addressLines, func(s string) bool {
+	addressLines = lo.Filter(addressLines, func(s string, _ int) bool {
 		return s != ""
 	})
 
 	return strings.Join(addressLines, "\n"), nil
-}
-
-type ErrorMap map[string]string
-
-func (e ErrorMap) Error() string {
-	if e == nil || len(e) == 0 {
-		return "{}"
-	}
-	b, _ := json.Marshal(e)
-	return string(b)
 }
 
 // func LatinizeAddress(address *Params, normalized bool) (interface{}, error) {

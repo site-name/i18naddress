@@ -1,14 +1,10 @@
 package i18naddress
 
 import (
-	"embed"
 	"regexp"
 
 	"github.com/samber/lo"
 )
-
-//go:embed data
-var assets embed.FS
 
 const assetsPrefix = "data"
 

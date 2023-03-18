@@ -69,10 +69,11 @@ func TestGetValidationRules(t *testing.T) {
 }
 
 func TestAssets(t *testing.T) {
-	data, err := assets.ReadFile(assetsPrefix + "/ac.json")
+	file, err := assets.Open("/zz.json")
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer file.Close()
 
-	fmt.Println(string(data))
+	fmt.Println(file)
 }

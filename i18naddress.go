@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -46,17 +45,32 @@ func init() {
 
 // LoadValidationData
 func LoadValidationData(countryCode string) (io.Reader, error) {
+	// if countryCode == "" {
+	// 	countryCode = "all"
+	// }
+
+	// if !VALID_COUNTRY_CODE.MatchString(countryCode) {
+	// 	return nil, newInvalidCodeErr(countryCode)
+	// }
+
+	// file, err := assets.Open(filepath.Join(assetsPrefix, fmt.Sprintf(VALIDATION_DATA_PATH, strings.ToLower(countryCode))))
+	// if err != nil {
+	// 	return nil, newInvalidCodeErr(countryCode)
+	// }
+
+	// return file, nil
 	if countryCode == "" {
 		countryCode = "all"
 	}
-
 	if !VALID_COUNTRY_CODE.MatchString(countryCode) {
-		return nil, newInvalidCodeErr(countryCode)
+		return nil, fmt.Errorf("%s is not a valid country code", countryCode)
 	}
 
-	file, err := assets.Open(filepath.Join(assetsPrefix, fmt.Sprintf(VALIDATION_DATA_PATH, strings.ToLower(countryCode))))
+	path := fmt.Sprintf(VALIDATION_DATA_PATH, strings.ToLower(countryCode))
+
+	file, err := assets.Open(path)
 	if err != nil {
-		return nil, newInvalidCodeErr(countryCode)
+		return nil, fmt.Errorf("%s is not valid country code", countryCode)
 	}
 
 	return file, nil

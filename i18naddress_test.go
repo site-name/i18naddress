@@ -11,7 +11,7 @@ import (
 )
 
 func TestLoadValidationData(t *testing.T) {
-	reader, err := LoadValidationData("vn")
+	reader, err := LoadValidationData("us")
 	if err != nil {
 		t.Fatal(err)
 	}
